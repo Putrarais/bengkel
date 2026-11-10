@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistem Manajemen Bengkel</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { oli: '#1B2A34', kertas: '#ECEEEA', baja: '#C9CFCB', api: '#E8590C', hijau: '#2F9E44' },
+  fontFamily: { judul: ['"Barlow Condensed"', 'sans-serif'], isi: ['Barlow', 'sans-serif'] }
+}}};
+</script>
+<style>
+  body { font-family: Barlow, sans-serif; }
+  .tab-on { background:#1B2A34; color:#fff; }
+  input:focus, select:focus, button:focus-visible { outline: 2px solid #E8590C; outline-offset: 1px; }
+  @media print {
+    body * { visibility: hidden; }
+    #nota, #nota * { visibility: visible; }
+    #nota { position: absolute; inset: 0; box-shadow: none; max-height: none; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body class="bg-kertas text-oli min-h-screen">
+
+<header class="bg-oli text-white">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <h1 class="font-judul text-2xl font-bold tracking-wide">Sistem Manajemen Bengkel</h1>
+    <div class="flex items-center gap-2 text-sm" role="status" aria-live="polite">
+      <span id="dot" class="w-3 h-3 rounded-full bg-gray-400"></span>
+      <span id="dotText">Memeriksa koneksi…</span>
+    </div>
+  </div>
+  <nav class="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto" id="nav">
+    <button data-v="transaksi" class="px-4 py-2 text-sm font-semibold rounded-t bg-kertas text-oli">Work order</button>
+    <button data-v="katalog" class="px-4 py-2 text-sm font-semibold rounded-t text-white/80 hover:text-white">Katalog layanan</button>
+    <button data-v="pelanggan" class="px-4 py-2 text-sm font-semibold rounded-t text-white/80 hover:text-white">Pelanggan &amp; kendaraan</button>
+    <button data-v="riwayat" class="px-4 py-2 text-sm font-semibold rounded-t text-white/80 hover:text-white">Riwayat</button>
+  </nav>
+</header>
+
+<main class="max-w-6xl mx-auto p-4">
+  <div id="toast" class="hidden mb-3 px-4 py-2 rounded text-sm font-medium"></div>
+
+  <!-- WORK ORDER -->
+  <section id="v-transaksi" class="grid lg:grid-cols-5 gap-4">
+    <div class="lg:col-span-3 bg-white rounded-lg p-4 border border-baja space-y-4">
+      <h2 class="font-judul text-xl font-bold">Work order baru</h2>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="block text-sm font-semibold">Kendaraan
+          <select id="selKendaraan" class="mt-1 w-full border border-baja rounded px-3 py-2 font-normal"></select>
+        </label>
+        <label class="block text-sm font-semibold">Nama mekanik
+          <input id="inMekanik" class="mt-1 w-full border border-baja rounded px-3 py-2 font-normal" placeholder="mis. Pak Hendra">
+        </label>
+      </div>
+      <div class="border-t border-baja pt-4">
+        <div class="flex flex-wrap items-end gap-2">
+          <label class="block text-sm font-semibold flex-1 min-w-[200px]">Tambah layanan / sparepart
+            <select id="selLayanan" class="mt-1 w-full border border-baja rounded px-3 py-2 font-normal"></select>
+          </label>
+          <button id="btnTambah" class="bg-oli text-white px-4 py-2 rounded font-semibold hover:bg-black">Tambah item</button>
+        </div>
+        <p id="filterInfo" class="text-xs text-oli/70 mt-2"></p>
+      </div>
+    </div>
+
+    <aside class="lg:col-span-2 bg-white rounded-lg p-4 border border-baja flex flex-col">
+      <h2 class="font-judul text-xl font-bold mb-2">Rincian biaya</h2>
+      <ul id="listItem" class="flex-1 divide-y divide-baja text-sm min-h-[80px]"></ul>
+      <div class="border-t-2 border-oli mt-3 pt-3 flex justify-between items-baseline">
+        <span class="font-semibold">Total</span>
+        <span id="total" class="font-judul text-3xl font-bold">Rp 0</span>
+      </div>
+      <button id="btnSimpan" class="mt-3 bg-api text-white py-2.5 rounded font-semibold hover:brightness-95 disabled:opacity-40" disabled>Simpan &amp; cetak nota</button>
+    </aside>
+  </section>
+
+  <!-- KATALOG -->
+  <section id="v-katalog" class="hidden grid lg:grid-cols-3 gap-4">
+    <form id="formLayanan" class="bg-white rounded-lg p-4 border border-baja space-y-3 h-fit">
+      <h2 class="font-judul text-xl font-bold">Tambah jasa / sparepart</h2>
+      <input name="nama_layanan" required placeholder="Nama layanan" class="w-full border border-baja rounded px-3 py-2">
+      <div class="grid grid-cols-2 gap-2">
+        <select name="kategori" class="border border-baja rounded px-3 py-2"><option>Jasa</option><option>Sparepart</option></select>
+        <select name="jenis_kendaraan" class="border border-baja rounded px-3 py-2"><option>Semua</option><option>Motor</option><option>Mobil</option></select>
+      </div>
+      <input name="harga" type="number" min="0" step="500" required placeholder="Harga (Rp)" class="w-full border border-baja rounded px-3 py-2">
+      <button class="w-full bg-oli text-white py-2 rounded font-semibold">Simpan layanan</button>
+    </form>
+    <div class="lg:col-span-2 bg-white rounded-lg p-4 border border-baja">
+      <div class="flex gap-2 mb-3" id="tabKatalog">
+        <button data-f="Motor" class="px-3 py-1.5 rounded text-sm font-semibold border border-baja">Motor</button>
+        <button data-f="Mobil" class="px-3 py-1.5 rounded text-sm font-semibold border border-baja">Mobil</button>
+        <button data-f="Semua" class="px-3 py-1.5 rounded text-sm font-semibold border border-baja">Semua kendaraan</button>
+      </div>
+      <div class="overflow-x-auto"><table class="w-full text-sm">
+        <thead><tr class="text-left border-b border-baja"><th class="py-2">Layanan</th><th>Kategori</th><th>Target</th><th class="text-right">Harga</th><th></th></tr></thead>
+        <tbody id="bodyKatalog"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- PELANGGAN -->
+  <section id="v-pelanggan" class="hidden grid lg:grid-cols-2 gap-4">
+    <form id="formReg" class="bg-white rounded-lg p-4 border border-baja space-y-3 h-fit">
+      <h2 class="font-judul text-xl font-bold">Registrasi pelanggan &amp; kendaraan</h2>
+      <input name="nama" required placeholder="Nama pemilik" class="w-full border border-baja rounded px-3 py-2">
+      <input name="telepon" placeholder="Telepon" class="w-full border border-baja rounded px-3 py-2">
+      <input name="alamat" placeholder="Alamat" class="w-full border border-baja rounded px-3 py-2">
+      <div class="grid grid-cols-2 gap-2">
+        <input name="plat_nomor" required placeholder="Plat nomor" class="border border-baja rounded px-3 py-2 uppercase">
+        <select name="jenis" class="border border-baja rounded px-3 py-2"><option>Motor</option><option>Mobil</option></select>
+        <input name="merek" placeholder="Merek" class="border border-baja rounded px-3 py-2">
+        <input name="model" placeholder="Model" class="border border-baja rounded px-3 py-2">
+      </div>
+      <button class="w-full bg-oli text-white py-2 rounded font-semibold">Daftarkan</button>
+    </form>
+    <div class="bg-white rounded-lg p-4 border border-baja">
+      <h2 class="font-judul text-xl font-bold mb-2">Kendaraan terdaftar</h2>
+      <ul id="listKendaraan" class="divide-y divide-baja text-sm"></ul>
+    </div>
+  </section>
+
+  <!-- RIWAYAT -->
+  <section id="v-riwayat" class="hidden bg-white rounded-lg p-4 border border-baja">
+    <h2 class="font-judul text-xl font-bold mb-2">Riwayat transaksi</h2>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead><tr class="text-left border-b border-baja"><th class="py-2">Tanggal</th><th>Kendaraan</th><th>Mekanik</th><th class="text-right">Total</th><th>Status</th><th></th></tr></thead>
+      <tbody id="bodyRiwayat"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<!-- MODAL NOTA -->
+<div id="modal" class="hidden fixed inset-0 bg-oli/60 flex items-center justify-center p-4 z-50">
+  <div id="nota" class="bg-white w-full max-w-sm rounded-lg shadow-xl p-5 max-h-[90vh] overflow-y-auto">
+    <div id="notaIsi"></div>
+    <div class="no-print flex gap-2 mt-4">
+      <button id="btnCetak" class="flex-1 bg-oli text-white py-2 rounded font-semibold">Cetak nota</button>
+      <button id="btnTutup" class="flex-1 border border-baja py-2 rounded font-semibold">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ===== Konfigurasi: lokasi backend PHP ===== */
+const API_URL = "api.php";
+
+/* ===== Util ===== */
+const rp = n => "Rp " + Number(n || 0).toLocaleString("id-ID");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = id => document.getElementById(id);
+
+/* ===== Kelas: klien API (browser tidak lagi memegang kunci Supabase) ===== */
+class ApiClient {
+  static async req(route, { method = "GET", params = {}, body } = {}) {
+    const qs = new URLSearchParams({ r: route, ...params });
+    const res = await fetch(`${API_URL}?${qs}`, {
+      method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined
+    });
+    let json;
+    try { json = await res.json(); }
+    catch { throw new Error("Backend PHP tidak merespons. Jalankan lewat Apache/XAMPP atau php -S."); }
+    if (!res.ok) throw new Error(json.error || "Permintaan gagal");
+    return json;
+  }
+  static async cekKoneksi() {
+    try { await this.req("ping"); return true; } catch { return false; }
+  }
+}
+
+/* ===== Kelas: model kendaraan (pewarisan & polimorfisme) ===== */
+class Kendaraan {
+  constructor({ id, pelanggan_id, plat_nomor, merek, model, pelanggan }) {
+    Object.assign(this, { id, pelanggan_id, platNomor: plat_nomor, merek, model, pemilik: pelanggan?.nama ?? "" });
+  }
+  get jenis() { return "Kendaraan"; }
+  get filterLayanan() { return [this.jenis, "Semua"]; }
+  get label() { return `${this.platNomor} · ${this.merek ?? ""} ${this.model ?? ""} (${this.pemilik})`; }
+  static dari(row) { return row.jenis === "Motor" ? new Motor(row) : new Mobil(row); }
+}
+class Motor extends Kendaraan { get jenis() { return "Motor"; } }
+class Mobil extends Kendaraan { get jenis() { return "Mobil"; } }
+
+/* ===== Kelas: layanan data (memanggil api.php) ===== */
+class PelangganService {
+  daftar(data) { return ApiClient.req("pelanggan", { method: "POST", body: data }); }
+  async kendaraan() { return (await ApiClient.req("kendaraan")).map(Kendaraan.dari); }
+}
+
+class KatalogService {
+  semua() { return ApiClient.req("layanan"); }
+  tambah(item) { return ApiClient.req("layanan", { method: "POST", body: item }); }
+  hapus(id) { return ApiClient.req("layanan", { method: "DELETE", params: { id } }); }
+}
+
+class TransaksiService {
+  /** Filter otomatis: server hanya mengembalikan jenis kendaraan ini + 'Semua' */
+  layananUntuk(kendaraan) { return ApiClient.req("layanan", { params: { jenis: kendaraan.jenis } }); }
+  async simpan({ kendaraan, mekanik, items }) {
+    const t = await ApiClient.req("transaksi", { method: "POST",
+      body: { kendaraan_id: kendaraan.id, mekanik, layanan_ids: items.map(i => i.id) } });
+    return { ...t, tanggal: t.created_at, kendaraan, items, total: Number(t.total_biaya) };
+  }
+  riwayat() { return ApiClient.req("transaksi"); }
+  ubahStatus(id, status) { return ApiClient.req("status", { method: "POST", body: { id, status } }); }
+}
+
+/* ===== Kelas: kontrol antarmuka ===== */
+class BengkelApp {
+  constructor() {
+    this.pelanggan = new PelangganService();
+    this.katalog = new KatalogService();
+    this.transaksi = new TransaksiService();
+    this.kendaraan = []; this.layananTersedia = []; this.keranjang = []; this.filterKatalog = "Motor";
+  }
+
+  async init() {
+    this.bind();
+    this.cekKoneksi();
+    await this.muatKendaraan();
+    await this.pilihKendaraan();
+  }
+
+  async cekKoneksi() {
+    const ok = await ApiClient.cekKoneksi();
+    $("dot").className = "w-3 h-3 rounded-full " + (ok ? "bg-green-400" : "bg-red-500");
+    $("dotText").textContent = ok ? "Supabase terhubung" : "Terputus: periksa api.php, config.php, dan skema";
+  }
+
+  toast(pesan, galat = false) {
+    const t = $("toast");
+    t.textContent = pesan;
+    t.className = "mb-3 px-4 py-2 rounded text-sm font-medium " + (galat ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800");
+    clearTimeout(this._tt); this._tt = setTimeout(() => t.classList.add("hidden"), 4000);
+  }
+  async jalankan(fn) { try { await fn(); } catch (e) { this.toast(e.message || "Terjadi kesalahan", true); } }
+
+  bind() {
+    $("nav").onclick = e => { const v = e.target.dataset.v; if (v) this.tampil(v); };
+    $("selKendaraan").onchange = () => this.jalankan(() => this.pilihKendaraan());
+    $("btnTambah").onclick = () => this.tambahItem();
+    $("btnSimpan").onclick = () => this.jalankan(() => this.simpanTransaksi());
+    $("listItem").onclick = e => { const i = e.target.dataset.hapus; if (i !== undefined) { this.keranjang.splice(+i, 1); this.renderKeranjang(); } };
+    $("tabKatalog").onclick = e => { const f = e.target.dataset.f; if (f) { this.filterKatalog = f; this.renderKatalog(); } };
+    $("formLayanan").onsubmit = e => { e.preventDefault(); this.jalankan(async () => {
+      const d = Object.fromEntries(new FormData(e.target)); d.harga = Number(d.harga);
+      await this.katalog.tambah(d); e.target.reset(); this.toast("Layanan disimpan"); await this.muatKatalog(); }); };
+    $("bodyKatalog").onclick = e => { const id = e.target.dataset.del; if (id && confirm("Hapus layanan ini?")) this.jalankan(async () => { await this.katalog.hapus(id); await this.muatKatalog(); }); };
+    $("formReg").onsubmit = e => { e.preventDefault(); this.jalankan(async () => {
+      await this.pelanggan.daftar(Object.fromEntries(new FormData(e.target))); e.target.reset();
+      this.toast("Pelanggan & kendaraan terdaftar"); await this.muatKendaraan(); }); };
+    $("bodyRiwayat").onclick = e => {
+      const { status, id, nota } = e.target.dataset;
+      if (status) this.jalankan(async () => { await this.transaksi.ubahStatus(id, status); await this.muatRiwayat(); });
+      if (nota) this.bukaNotaRiwayat(nota);
+    };
+    $("btnCetak").onclick = () => window.print();
+    $("btnTutup").onclick = () => $("modal").classList.add("hidden");
+  }
+
+  tampil(v) {
+    for (const s of ["transaksi", "katalog", "pelanggan", "riwayat"]) $("v-" + s).classList.toggle("hidden", s !== v);
+    document.querySelectorAll("#nav button").forEach(b => {
+      const on = b.dataset.v === v;
+      b.className = "px-4 py-2 text-sm font-semibold rounded-t " + (on ? "bg-kertas text-oli" : "text-white/80 hover:text-white");
+    });
+    if (v === "katalog") this.jalankan(() => this.muatKatalog());
+    if (v === "pelanggan") this.jalankan(() => this.muatKendaraan());
+    if (v === "riwayat") this.jalankan(() => this.muatRiwayat());
+  }
+
+  /* --- Work order --- */
+  async muatKendaraan() {
+    this.kendaraan = await this.pelanggan.kendaraan();
+    $("selKendaraan").innerHTML = this.kendaraan.length
+      ? this.kendaraan.map(k => `<option value="${k.id}">${esc(k.label)}</option>`).join("")
+      : `<option value="">Belum ada kendaraan: daftarkan dulu</option>`;
+    $("listKendaraan").innerHTML = this.kendaraan.map(k =>
+      `<li class="py-2 flex justify-between"><span><b>${esc(k.platNomor)}</b> ${esc(k.merek)} ${esc(k.model)}<br><span class="text-oli/70">${esc(k.pemilik)}</span></span><span class="text-xs font-semibold self-center px-2 py-0.5 rounded ${k.jenis === "Motor" ? "bg-orange-100" : "bg-blue-100"}">${k.jenis}</span></li>`
+    ).join("") || `<li class="py-2 text-oli/60">Belum ada data.</li>`;
+  }
+  get kendaraanDipilih() { return this.kendaraan.find(k => k.id === $("selKendaraan").value); }
+
+  async pilihKendaraan() {
+    const k = this.kendaraanDipilih;
+    this.keranjang = []; this.renderKeranjang();
+    if (!k) { $("selLayanan").innerHTML = ""; $("filterInfo").textContent = ""; return; }
+    this.layananTersedia = await this.transaksi.layananUntuk(k);
+    $("selLayanan").innerHTML = this.layananTersedia.map(l =>
+      `<option value="${l.id}">[${l.kategori}] ${esc(l.nama_layanan)} - ${rp(l.harga)}</option>`).join("");
+    $("filterInfo").textContent = `Menampilkan layanan untuk ${k.filterLayanan.join(" dan ")} saja.`;
+  }
+
+  tambahItem() {
+    const l = this.layananTersedia.find(x => x.id === $("selLayanan").value);
+    if (!l) return this.toast("Pilih layanan terlebih dahulu", true);
+    this.keranjang.push(l); this.renderKeranjang();
+  }
+  renderKeranjang() {
+    $("listItem").innerHTML = this.keranjang.map((l, i) =>
+      `<li class="py-2 flex justify-between gap-2"><span>${esc(l.nama_layanan)}<br><span class="text-xs text-oli/60">${l.kategori}</span></span>
+       <span class="whitespace-nowrap">${rp(l.harga)} <button data-hapus="${i}" class="ml-2 text-api font-semibold" aria-label="Hapus item">Hapus</button></span></li>`
+    ).join("") || `<li class="py-3 text-oli/60">Tambahkan jasa atau sparepart untuk menghitung biaya.</li>`;
+    $("total").textContent = rp(this.keranjang.reduce((s, l) => s + Number(l.harga), 0));
+    $("btnSimpan").disabled = !this.keranjang.length;
+  }
+  async simpanTransaksi() {
+    const mekanik = $("inMekanik").value.trim();
+    if (!mekanik) return this.toast("Isi nama mekanik", true);
+    const trx = await this.transaksi.simpan({ kendaraan: this.kendaraanDipilih, mekanik, items: this.keranjang });
+    this.tampilNota(trx);
+    this.keranjang = []; this.renderKeranjang(); $("inMekanik").value = "";
+    this.toast("Transaksi tersimpan dengan status Pending");
+  }
+
+  /* --- Nota --- */
+  tampilNota({ id, tanggal, mekanik_nama, status, kendaraan, items, total }) {
+    const tgl = new Date(tanggal).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
+    $("notaIsi").innerHTML = `
+      <div class="text-center border-b border-dashed border-oli pb-3">
+        <div class="font-judul text-2xl font-bold">NOTA SERVIS</div>
+        <div class="text-xs">No. ${esc(String(id).slice(0, 8).toUpperCase())} · ${tgl}</div>
+      </div>
+      <div class="text-sm py-3 border-b border-dashed border-oli">
+        <div>Kendaraan: <b>${esc(kendaraan.platNomor)}</b> (${esc(kendaraan.jenis)})</div>
+        <div>${esc(kendaraan.merek)} ${esc(kendaraan.model)}</div>
+        <div>Pemilik: ${esc(kendaraan.pemilik)}</div>
+        <div>Mekanik: ${esc(mekanik_nama)} · Status: ${esc(status)}</div>
+      </div>
+      <table class="w-full text-sm my-3">${items.map(i => `<tr><td class="py-0.5">${esc(i.nama_layanan)}</td><td class="text-right">${rp(i.harga)}</td></tr>`).join("")}</table>
+      <div class="border-t-2 border-oli pt-2 flex justify-between font-bold text-lg"><span>TOTAL</span><span>${rp(total)}</span></div>
+      <p class="text-center text-xs mt-3">Terima kasih atas kepercayaan Anda.</p>`;
+    $("modal").classList.remove("hidden");
+  }
+  bukaNotaRiwayat(id) {
+    const t = this._riwayat.find(x => x.id === id); if (!t) return;
+    const k = t.kendaraan;
+    this.tampilNota({
+      id: t.id, tanggal: t.created_at, mekanik_nama: t.mekanik_nama, status: t.status, total: t.total_biaya,
+      kendaraan: { platNomor: k.plat_nomor, jenis: k.jenis, merek: k.merek, model: k.model, pemilik: k.pelanggan?.nama },
+      items: t.detail_transaksi.map(d => ({ nama_layanan: d.layanan_servis?.nama_layanan, harga: d.subtotal }))
+    });
+  }
+
+  /* --- Katalog --- */
+  async muatKatalog() { this._katalog = await this.katalog.semua(); this.renderKatalog(); }
+  renderKatalog() {
+    document.querySelectorAll("#tabKatalog button").forEach(b => b.classList.toggle("tab-on", b.dataset.f === this.filterKatalog));
+    const rows = (this._katalog ?? []).filter(l => l.jenis_kendaraan === this.filterKatalog);
+    $("bodyKatalog").innerHTML = rows.map(l => `<tr class="border-b border-baja/60"><td class="py-2">${esc(l.nama_layanan)}</td><td>${l.kategori}</td><td>${l.jenis_kendaraan}</td>
+      <td class="text-right">${rp(l.harga)}</td><td class="text-right"><button data-del="${l.id}" class="text-api font-semibold">Hapus</button></td></tr>`).join("")
+      || `<tr><td colspan="5" class="py-4 text-oli/60">Belum ada layanan untuk kategori ini.</td></tr>`;
+  }
+
+  /* --- Riwayat --- */
+  async muatRiwayat() {
+    this._riwayat = await this.transaksi.riwayat();
+    const next = { Pending: "Proses", Proses: "Selesai" };
+    $("bodyRiwayat").innerHTML = this._riwayat.map(t => `<tr class="border-b border-baja/60">
+      <td class="py-2">${new Date(t.created_at).toLocaleDateString("id-ID")}</td>
+      <td>${esc(t.kendaraan?.plat_nomor)}</td><td>${esc(t.mekanik_nama)}</td><td class="text-right">${rp(t.total_biaya)}</td>
+      <td><span class="px-2 py-0.5 rounded text-xs font-semibold ${t.status === "Selesai" ? "bg-green-100" : t.status === "Proses" ? "bg-yellow-100" : "bg-baja"}">${t.status}</span></td>
+      <td class="text-right whitespace-nowrap">${next[t.status] ? `<button data-id="${t.id}" data-status="${next[t.status]}" class="font-semibold mr-2">→ ${next[t.status]}</button>` : ""}<button data-nota="${t.id}" class="text-api font-semibold">Nota</button></td></tr>`).join("")
+      || `<tr><td colspan="6" class="py-4 text-oli/60">Belum ada transaksi.</td></tr>`;
+  }
+}
+
+new BengkelApp().init().catch(e => console.error(e));
+</script>
+</body>
+</html>
